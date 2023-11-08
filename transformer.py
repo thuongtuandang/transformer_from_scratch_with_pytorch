@@ -119,7 +119,8 @@ class Transformer():
         # Inputs will be a list with only one element
         # And this element is the matrix representation of the sentence
         # The matrix consists of row vectors, each row is a word embedding
-        torch_inputs = torch.tensor(inputs)
+        np_inputs = np.array(inputs)
+        torch_inputs = torch.tensor(np_inputs)
         torch_inputs = torch_inputs.T
         torch_inputs = torch_inputs.to(torch.float32)
         pos_inputs = self.positional_encoding(torch_inputs)
@@ -149,7 +150,7 @@ class Transformer():
          # Accuracy 
         return float(accuracy/len(X))
     
-    def fit(self, X, y, max_iter = 1001, learning_rate = 0.001):
+    def fit(self, X, y, max_iter = 201, learning_rate = 0.001):
         self.loss = nn.BCEWithLogitsLoss()
         self.optimizer = opt.SGD([self.Wq, self.Wk, self.Wv, self.Wo, 
                                 self.Wnorm_self, self.bnorm_self, self.gamma_self, self.beta_self, 
@@ -158,7 +159,7 @@ class Transformer():
                                 lr = learning_rate)
         for i in range(max_iter):
             accuracy = self.process(X, y, run_backward=True)
-            if(i % 100 == 0):
+            if(i % 20 == 0):
                 print(f"Step: {i}")
                 print(f"accuracy for training data: {accuracy}")
     
