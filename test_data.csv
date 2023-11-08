@@ -1,0 +1,21 @@
+X,y
+this is happy,True
+i am good,True
+this is not happy,False
+i am not good,False
+this is not bad,True
+i am not sad,True
+i am very good,True
+this is very bad,False
+i am very sad,False
+this is bad not good,False
+this is good and happy,True
+i am not good and not happy,False
+i am not at all sad,True
+this is not at all good,False
+this is not at all bad,True
+this is good right now,True
+this is sad right now,False
+this is very bad right now,False
+this was good earlier,True
+i was not happy and not good earlier,False
