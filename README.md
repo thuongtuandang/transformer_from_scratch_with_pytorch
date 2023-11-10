@@ -10,7 +10,7 @@ We highly recommend you to take a look on our documentation file `documents/Tran
 In this documentation, we carefully treated every theoritical aspect in the paper 'Attention is all you need' in detail.
 
 Interesting points contained in the file:
-- The difference of positional encoding between time t and time (t + k) is a rotation of complex numbers.
+- The difference of the positional encoding between time t and time (t + k) is a rotation of complex numbers.
 - Self-attention really tells us how the current input depends on other inputs.
 - Residual connections can reduce random noises and the possibility of vanishing gradient.
 
