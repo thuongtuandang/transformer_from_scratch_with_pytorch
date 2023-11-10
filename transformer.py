@@ -116,8 +116,7 @@ class Transformer():
     
     def forward(self, inputs):
         # Inputs is a whole sentence at a time
-        # Inputs will be a list with only one element
-        # And this element is the matrix representation of the sentence
+        # And this sentence is represented by a matrix
         # The matrix consists of row vectors, each row is a word embedding
         np_inputs = np.array(inputs)
         torch_inputs = torch.tensor(np_inputs)
