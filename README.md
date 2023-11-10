@@ -1,17 +1,18 @@
 # transformer_from_scratch_with_pytorch
 ## Goal of this project
 - Implement a transformer model from scratch with Pytorch.
-- Provide a complete documentation about theoritical aspetcs of transformer mechanism with sample codes.
+- Provide a complete documentation about the theoritical aspetcs of transformer mechanism with sample codes.
 - Process text data and transform it into a form useful for our model for the prediction task.
 - Predict sentiment based on text data.
 
+## Documentation
 We highly recommend you to take a look on our documentation file `documents/Transformer.pdf`.
 In this documentation, we carefully treated every theoritical aspect in the paper 'Attention is all you need' in detail.
 
 Interesting points contained in the file:
-    - The difference of positional encoding between time t and time (t + k) is a rotation of complex numbers.
-    - Self-attention really tells us how the current input depends on other inputs.
-    - Residual connections can reduce random noises and the possibility of vanishing gradient.
+- The difference of positional encoding between time t and time (t + k) is a rotation of complex numbers.
+- Self-attention really tells us how the current input depends on other inputs.
+- Residual connections can reduce random noises and the possibility of vanishing gradient.
 
 ## Install python package
 ### Using `venv`:
