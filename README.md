@@ -34,7 +34,7 @@ You can train a transformer model with the default setting:
 ```
 python experiments.py
 ```
-You can switch to your own data by coping your data file to the `data` folder and update the `train_data_path` and 'test_data_path' variables in the `experiments.py` file.
+You can switch to your own data by coping your data file to the `data` folder and update the `train_data_path` and `test_data_path` variables in the `experiments.py` file.
 ```
 train_data_path = "path/to/your/train/data/file"
 test_data_path = "path/to/your/test/data/file"
