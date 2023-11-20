@@ -10,7 +10,7 @@ We highly recommend you to take a look on our documentation file `documents/Tran
 In this documentation, we carefully treated every theoritical aspect in the paper 'Attention is all you need' in detail.
 
 Interesting points contained in the file:
-- The difference of positional encoding between time t and time (t + k) is a rotation of complex numbers.
+- The difference of the positional encoding between time t and time (t + k) is a rotation of complex numbers.
 - Self-attention really tells us how the current input depends on other inputs.
 - Residual connections can reduce random noises and the possibility of vanishing gradient.
 
@@ -34,9 +34,10 @@ You can train a transformer model with the default setting:
 ```
 python experiments.py
 ```
-You can switch to your own data by coping your data file to the `data` folder and update the `DATA_PATH` variable in the `experiments.py` file.
+You can switch to your own data by coping your data file to the `data` folder and update the `train_data_path` and `test_data_path` variables in the `experiments.py` file.
 ```
-DATA_PATH = "path/to/your/data/file"
+train_data_path = "path/to/your/train/data/file"
+test_data_path = "path/to/your/test/data/file"
 ```
 You also can change the `learning rate` and the `number of iterations` with this command:
 ```
