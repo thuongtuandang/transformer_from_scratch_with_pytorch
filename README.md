@@ -6,7 +6,7 @@
 - Predict sentiment based on text data.
 
 ## Documentation
-We highly recommend you to take a look on our documentation file `documents/Transformer.pdf`.
+We highly recommend you to take a look on our documentation file `Documentation/Transformer.pdf`.
 In this documentation, we carefully treated every theoritical aspect in the paper 'Attention is all you need' in detail.
 
 Interesting points contained in the file:
