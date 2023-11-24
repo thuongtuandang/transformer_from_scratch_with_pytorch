@@ -55,17 +55,17 @@ class Transformer():
         self.beta_self = torch.zeros((hidden_size,1), requires_grad=True)
 
         # Initialize matrices for feed-forward layer
-        self.Wf = torch.rand(output_size, hidden_size)/1000
+        self.Wf = torch.rand(hidden_size, output_size)/1000
         self.Wf.requires_grad = True
-        self.bf = torch.zeros((output_size,1), requires_grad=True)
+        self.bf = torch.zeros((hidden_size,1), requires_grad=True)
 
         # Initialize parameters for layer normalization after feedforward layer
-        self.Wnorm_feed = torch.rand(output_size, hidden_size)/1000
+        self.Wnorm_feed = torch.rand(hidden_size, output_size)/1000
         self.Wnorm_feed.requires_grad = True
-        self.bnorm_feed = torch.rand((output_size,1), requires_grad=True)
-        self.gamma_feed = torch.rand((hidden_size,1))/1000
+        self.bnorm_feed = torch.rand((hidden_size,1), requires_grad=True)
+        self.gamma_feed = torch.rand((1, hidden_size))/1000
         self.gamma_feed.requires_grad = True
-        self.beta_feed = torch.zeros((output_size,1), requires_grad=True)    
+        self.beta_feed = torch.zeros((1,1), requires_grad=True)    
     
     # Positional encoding for the whole sentence
     def positional_encoding(self, inputs):
@@ -103,16 +103,16 @@ class Transformer():
 
     # Feed forward after layer norm
     def feed_forward(self, inputs):
-        output = self.Wf @ inputs + self.bf
+        output = inputs @ self.Wf + self.bf
         output = torch.relu(output)
         return output
         
     # Layer norm after feed_forward
     def layer_norm_feed_forward(self, previous_layer_outputs, inputs):
-        intputs_matching = self.Wnorm_feed @ inputs + self.bnorm_feed
+        intputs_matching = inputs @ self.Wnorm_feed + self.bnorm_feed
         vector = previous_layer_outputs + intputs_matching
         z_score_vector = z_score(vector)
-        next_inputs = z_score_vector @ self.gamma_feed + self.beta_feed
+        next_inputs = self.gamma_feed @ z_score_vector + self.beta_feed
         return next_inputs
     
     def forward(self, inputs):
@@ -127,7 +127,7 @@ class Transformer():
         output_layer_norm_self = self.layer_norm_self_attention(output_self_attention, pos_inputs)
         output_feed_forward = self.feed_forward(output_layer_norm_self)
         output_layer_norm_feed = self.layer_norm_feed_forward(output_feed_forward, output_layer_norm_self)
-        y_pred = torch.softmax(output_layer_norm_feed, dim = 0)
+        y_pred = torch.softmax(output_layer_norm_feed, dim = 1)
         return y_pred
     
     def process(self, X, y, run_backward = False):
@@ -136,13 +136,16 @@ class Transformer():
             # x is a matrix of a sentence
             probs = self.forward(x)
             # True label
-            true_index = int(y_true)  
+            true_index = int(y_true) 
             # Accuracy
             accuracy += int(torch.argmax(probs) == true_index) 
             if run_backward:
-                y_true_torch = torch.zeros((2,1))
-                y_true_torch[true_index] = 1
+                print(f"true index", true_index)
+                y_true_torch = torch.zeros((1,2))
+                y_true_torch[0][true_index] = 1
+                print(y_true_torch)
                 L = self.loss(probs, y_true_torch)
+                # print(L)
                 self.optimizer.zero_grad()
                 L.backward()
                 self.optimizer.step()
@@ -150,7 +153,7 @@ class Transformer():
         return float(accuracy/len(X))
     
     def fit(self, X, y, max_iter = 201, learning_rate = 0.001, print_period = 20):
-        self.loss = nn.BCEWithLogitsLoss()
+        self.loss = nn.BCELoss()
         self.optimizer = opt.SGD([self.Wq, self.Wk, self.Wv, self.Wo, 
                                 self.Wnorm_self, self.bnorm_self, self.gamma_self, self.beta_self, 
                                 self.Wf, self.bf, 
@@ -158,7 +161,7 @@ class Transformer():
                                 lr = learning_rate)
         for i in range(max_iter):
             accuracy = self.process(X, y, run_backward=True)
-            if(i % 20 == 0):
+            if(i % print_period == 0):
                 print(f"Step: {i}")
                 print(f"accuracy for training data: {accuracy}")
     
