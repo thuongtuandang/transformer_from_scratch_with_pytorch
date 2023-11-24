@@ -8,5 +8,5 @@ def z_score(matrix):
     return z_score_vector
 
 def self_attention(mask, Q, K, V):
-    att = (Q @ K.T + mask)/np.sqrt(Q.shape[0])
+    att = (Q @ K.T + mask)/np.sqrt(Q.shape[1])
     return (torch.softmax(att, dim = 0) @ V)

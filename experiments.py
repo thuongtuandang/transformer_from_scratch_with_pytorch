@@ -16,9 +16,11 @@ def main(args):
     # Each element in X_train is a matrix of a sentence
     # Each element in y_train is a boolean value
     X_train, y_train = dataset.create_X_y(train_dict)
-
-    model = Transformer(dataset.vocab_size, dataset.output_length, args.hidden_size)
-    model.fit(X_train, y_train, max_iter = args.num_iter, learning_rate = args.learning_rate)
+    # Parameters: 
+    # input_size = max_sentence_length
+    # dim_input_size = dim of word embedding, in this case it is vocab_size
+    model = Transformer(dataset.sentence_max_length, dataset.vocab_size, dataset.output_length, args.hidden_size)
+    model.fit(X_train, y_train, max_iter = args.num_iter, learning_rate = args.learning_rate, print_period = args.print_period)
 
     test_dict = dataset.df_to_dict(test_data_path)
     X_test, y_test = dataset.create_X_y(test_dict)
@@ -52,6 +54,13 @@ if __name__ == "__main__":
         type = float,
         required = False,
         default = 0.001
+    )
+    parser.add_argument(
+        "-pr",
+        "--print_period",
+        type = int,
+        required = False,
+        default = 20
     )
     args = parser.parse_args()
     main(args)

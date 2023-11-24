@@ -6,33 +6,35 @@ from dataset import Dataset
 from utils import z_score, self_attention
 
 class Transformer():
-    def __init__(self, input_size, output_size, hidden_size = 64):
+    # T = max_sentence_length
+    # dim_input_size = dim of word embedding, in this case it is vocab_size
+    def __init__(self, input_size, dim_input_size, output_size, hidden_size = 64):
         # That is the number of heads
         self.n_heads = 2
         # Here we can define matrices in pytorch with require_grad = True
         # Initialize matrices for self-attention layer
-        self.Wq = torch.empty(0, input_size)
-        self.Wk = torch.empty(0, input_size)
-        self.Wv = torch.empty(0, input_size)
+        self.Wq = torch.empty(dim_input_size, 0)
+        self.Wk = torch.empty(dim_input_size, 0)
+        self.Wv = torch.empty(dim_input_size, 0)
         for i in range(self.n_heads):
-            Wq = torch.rand(hidden_size, input_size)/1000
-            self.Wq = torch.cat((self.Wq, Wq), dim = 0)
-            Wk = torch.rand(hidden_size, input_size)/1000
-            self.Wk = torch.cat((self.Wk, Wk), dim = 0)
-            Wv = torch.rand(hidden_size, input_size)/1000
-            self.Wv = torch.cat((self.Wv, Wv), dim = 0)
+            Wq = torch.rand(dim_input_size, hidden_size)/1000
+            self.Wq = torch.cat((self.Wq, Wq), dim = 1)
+            Wk = torch.rand(dim_input_size, hidden_size)/1000
+            self.Wk = torch.cat((self.Wk, Wk), dim = 1)
+            Wv = torch.rand(dim_input_size, hidden_size)/1000
+            self.Wv = torch.cat((self.Wv, Wv), dim = 1)
         
         self.Wq.requires_grad = True
         self.Wk.requires_grad = True
         self.Wv.requires_grad = True
 
         # Initialize the matrix Wo for the projection of the multi head layer output
-        self.Wo = torch.rand(hidden_size, self.n_heads * hidden_size)/1000
+        self.Wo = torch.rand(self.n_heads * hidden_size, hidden_size)/1000
         self.Wo.requires_grad = True
         # Create the mask matrix with upper part is -infinity
         # and other entries are 0
         # First we create a matrix filled with - infinity at all entries
-        matrix = torch.full((self.n_heads*hidden_size, self.n_heads * hidden_size), -float('inf'))
+        matrix = torch.full((input_size, input_size), -float('inf'))
         # triu = triangular upper part, we want to fill in upper part with - infinity
         matrix = torch.triu(matrix)
         # Replace the diagonal by 0
@@ -44,13 +46,11 @@ class Transformer():
 
         # Dimension matching layer for the layer norm
         # This layer norm is after self-attention layer
-        self.Wnorm_self = torch.rand(hidden_size, input_size)/1000
+        self.Wnorm_self = torch.rand(dim_input_size, hidden_size)/1000
         self.Wnorm_self.requires_grad = True
-        self.bnorm_self = torch.zeros((hidden_size,1), requires_grad=True)
-        # Rows of gamma_self is equal to sentence_max_length
-        ds = Dataset()
-        sentence_max_length = ds.sentence_max_length
-        self.gamma_self = torch.rand((sentence_max_length,hidden_size))/1000
+        self.bnorm_self = torch.zeros((input_size,1), requires_grad=True)
+        # Gamma and beta is for the normalization layer
+        self.gamma_self = torch.rand((hidden_size, input_size))/1000
         self.gamma_self.requires_grad = True
         self.beta_self = torch.zeros((hidden_size,1), requires_grad=True)
 
@@ -85,19 +85,20 @@ class Transformer():
     
     # Multi-head attention
     def multi_head_attention(self, inputs):
-        q = self.Wq @ inputs
-        k = self.Wk @ inputs
-        v = self.Wv @ inputs
+        q = inputs @ self.Wq
+        k = inputs @ self.Wk
+        v = inputs @ self.Wv
         attention = self_attention(self.mask, q, k, v)
-        output = self.Wo @ attention
+        output = attention @ self.Wo
         return output
         
     # Layer norm after self-attention layer
     def layer_norm_self_attention(self, previous_layer_outputs, inputs):
-        inputs_matching = self.Wnorm_self @ inputs + self.bnorm_self
-        vector = previous_layer_outputs + inputs_matching
-        z_score_vector = z_score(vector)
-        next_inputs = z_score_vector @ self.gamma_self + self.beta_self
+        inputs_matching = inputs @ self.Wnorm_self + self.bnorm_self
+        # print(inputs_matching.shape)
+        matrix = previous_layer_outputs + inputs_matching
+        z_score_matrix = z_score(matrix)
+        next_inputs = self.gamma_self @ z_score_matrix + self.beta_self
         return next_inputs
 
     # Feed forward after layer norm
@@ -120,7 +121,6 @@ class Transformer():
         # The matrix consists of row vectors, each row is a word embedding
         np_inputs = np.array(inputs)
         torch_inputs = torch.tensor(np_inputs)
-        torch_inputs = torch_inputs.T
         torch_inputs = torch_inputs.to(torch.float32)
         pos_inputs = self.positional_encoding(torch_inputs)
         output_self_attention = self.multi_head_attention(pos_inputs)
@@ -149,7 +149,7 @@ class Transformer():
          # Accuracy 
         return float(accuracy/len(X))
     
-    def fit(self, X, y, max_iter = 201, learning_rate = 0.001):
+    def fit(self, X, y, max_iter = 201, learning_rate = 0.001, print_period = 20):
         self.loss = nn.BCEWithLogitsLoss()
         self.optimizer = opt.SGD([self.Wq, self.Wk, self.Wv, self.Wo, 
                                 self.Wnorm_self, self.bnorm_self, self.gamma_self, self.beta_self, 
