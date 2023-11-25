@@ -4,6 +4,7 @@ import torch.nn as nn
 import torch.optim as opt
 from dataset import Dataset
 from utils import self_attention
+import torch.nn.init as init
 
 class Transformer():
     # T = max_sentence_length
@@ -17,11 +18,20 @@ class Transformer():
         self.Wk = torch.empty(dim_input_size, 0)
         self.Wv = torch.empty(dim_input_size, 0)
         for i in range(self.n_heads):
-            Wq = torch.rand(dim_input_size, hidden_size)/1000
+            # Initialize matrices with Xavier initialization
+            Wq = torch.empty(dim_input_size, hidden_size)
+            init.xavier_normal_(Wq)
+            Wq = Wq/1000
             self.Wq = torch.cat((self.Wq, Wq), dim = 1)
-            Wk = torch.rand(dim_input_size, hidden_size)/1000
+
+            Wk = torch.empty(dim_input_size, hidden_size)
+            init.xavier_normal_(Wk)
+            Wk = Wk/1000
             self.Wk = torch.cat((self.Wk, Wk), dim = 1)
-            Wv = torch.rand(dim_input_size, hidden_size)/1000
+
+            Wv = torch.empty(dim_input_size, hidden_size)
+            init.xavier_normal_(Wv)
+            Wv = Wv/1000
             self.Wv = torch.cat((self.Wv, Wv), dim = 1)
         
         self.Wq.requires_grad = True
@@ -29,7 +39,9 @@ class Transformer():
         self.Wv.requires_grad = True
 
         # Initialize the matrix Wo for the projection of the multi head layer output
-        self.Wo = torch.rand(self.n_heads * hidden_size, hidden_size)/1000
+        self.Wo = torch.empty(self.n_heads * hidden_size, hidden_size)
+        init.xavier_normal_(self.Wo)
+        Wo = torch.sigmoid(self.Wo)
         self.Wo.requires_grad = True
         # Create the mask matrix with upper part is -infinity
         # and other entries are 0
@@ -44,12 +56,14 @@ class Transformer():
         self.n = 10000
 
         # Initialize parameters for the feed forward layer
-        self.Wf = torch.rand(output_size, input_size)/1000
+        self.Wf = torch.rand(output_size, input_size)
+        # init.xavier_normal(self.Wf)
         self.Wf.requires_grad = True
         self.bf = torch.zeros((output_size, 1), requires_grad = True)
 
         # Initialize for the linear layer
-        self.Wl = torch.rand(hidden_size, 1)/1000
+        self.Wl = torch.rand(hidden_size, 1)
+        # init.xavier_normal_(self.Wl)
         self.Wl.requires_grad = True
         self.bl = torch.zeros((output_size, 1), requires_grad = True)    
     
@@ -62,26 +76,26 @@ class Transformer():
             pos = torch.zeros((1,d))
             for i in range(d):
                 if i % 2 == 0:
-                    pos[0][i] = np.sin(np.radians(k/(self.n**(i/d))))
+                    pos[0][i] = np.sin((k/(self.n**(i/d))))
                 if i % 2 == 1:
-                    pos[0][i] = np.cos(np.radians(k/(self.n**((i-1)/d))))
+                    pos[0][i] = np.cos((k/(self.n**((i-1)/d))))
             v_pos = inputs[k, :] + pos
             pos_encoding = torch.cat((pos_encoding, v_pos), dim = 0)
-        return pos_encoding/2
+        return pos_encoding
     
     # Multi-head attention
     def multi_head_attention(self, inputs):
         q = inputs @ self.Wq
         k = inputs @ self.Wk
         v = inputs @ self.Wv
-        attention = self_attention(q, k, v)
+        attention = self_attention(q, k, v, self.mask)
         output = attention @ self.Wo
         return output
 
     # Feed forward layer
     def feed_forward(self, inputs):
         output = self.Wf @ inputs + self.bf
-        output = torch.relu(output)
+        output = torch.sigmoid(output)
         return output
     
     def linear(self, inputs):
@@ -99,7 +113,6 @@ class Transformer():
         output_feed_forward = self.feed_forward(output_self_attention)
         output_linear = self.linear(output_feed_forward)
         y_pred = torch.softmax(output_linear, dim = 0)
-        print(y_pred)
         return y_pred
     
     def process(self, X, y, run_backward = False):

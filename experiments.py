@@ -39,28 +39,28 @@ if __name__ == "__main__":
         "--hidden_size",
         type = int,
         required = False,
-        default = 2
+        default = 18
     )
     parser.add_argument(
         "-ni",
         "--num_iter",
         type = int,
         required = False,
-        default = 201
+        default = 500
     )
     parser.add_argument(
         "-lr",
         "--learning_rate",
         type = float,
         required = False,
-        default = 0.001
+        default = 0.01
     )
     parser.add_argument(
         "-pr",
         "--print_period",
         type = int,
         required = False,
-        default = 20
+        default = 50
     )
     args = parser.parse_args()
     main(args)
