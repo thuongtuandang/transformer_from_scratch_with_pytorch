@@ -3,14 +3,14 @@ import torch
 import torch.nn as nn
 import torch.optim as opt
 from dataset import Dataset
-from utils import z_score, self_attention
+from utils import self_attention
 
 class Transformer():
     # T = max_sentence_length
     # dim_input_size = dim of word embedding, in this case it is vocab_size
     def __init__(self, input_size, dim_input_size, output_size, hidden_size = 64):
         # That is the number of heads
-        self.n_heads = 2
+        self.n_heads = 1
         # Here we can define matrices in pytorch with require_grad = True
         # Initialize matrices for self-attention layer
         self.Wq = torch.empty(dim_input_size, 0)
@@ -43,45 +43,41 @@ class Transformer():
         # That is for the positional encoding
         self.n = 10000
 
-
-        # Dimension matching layer for the layer norm
-        # This layer norm is after self-attention layer
-        self.Wnorm_self = torch.rand(dim_input_size, hidden_size)/1000
-        self.Wnorm_self.requires_grad = True
-        self.bnorm_self = torch.zeros((input_size,1), requires_grad=True)
         # Gamma and beta is for the normalization layer
-        self.gamma_self = torch.rand((hidden_size, input_size))/1000
+        self.gamma_self = torch.rand((dim_input_size + hidden_size, hidden_size))/1000
         self.gamma_self.requires_grad = True
-        self.beta_self = torch.zeros((hidden_size,1), requires_grad=True)
+        self.beta_self = torch.zeros((input_size,1), requires_grad=True)
 
-        # Initialize matrices for feed-forward layer
-        self.Wf = torch.rand(hidden_size, output_size)/1000
+        # Initialize parameters for the feed forward layer
+        self.Wf = torch.rand(output_size, input_size)/1000
         self.Wf.requires_grad = True
-        self.bf = torch.zeros((hidden_size,1), requires_grad=True)
+        self.bf = torch.zeros((output_size, 1), requires_grad = True)
 
-        # Initialize parameters for layer normalization after feedforward layer
-        self.Wnorm_feed = torch.rand(hidden_size, output_size)/1000
-        self.Wnorm_feed.requires_grad = True
-        self.bnorm_feed = torch.rand((hidden_size,1), requires_grad=True)
-        self.gamma_feed = torch.rand((1, hidden_size))/1000
+        # Initialize gamma, beta for layer normalization after feedforward layer
+        self.gamma_feed = torch.rand((hidden_size, output_size))/1000
         self.gamma_feed.requires_grad = True
-        self.beta_feed = torch.zeros((1,1), requires_grad=True)    
+        self.beta_feed = torch.zeros((input_size + output_size,1), requires_grad=True)
+
+        # Initialize for the linear layer
+        self.Wl = torch.rand(1, input_size + output_size)/1000
+        self.Wl.requires_grad = True
+        self.bl = torch.zeros((1,1), requires_grad = True)    
     
     # Positional encoding for the whole sentence
     def positional_encoding(self, inputs):
-        pos_encoding = torch.empty(inputs.shape[0],0)
-        iter = inputs.shape[1]
+        pos_encoding = torch.empty(0, inputs.shape[1])
+        iter = inputs.shape[0]
         for k in range(iter):
-            d = inputs.shape[0]
-            pos = torch.zeros((d,1))
+            d = inputs.shape[1]
+            pos = torch.zeros((1,d))
             for i in range(d):
                 if i % 2 == 0:
-                    pos[i] = np.sin(k/(self.n**(i/d)))
+                    pos[0][i] = np.sin(np.radians(k/(self.n**(i/d))))
                 if i % 2 == 1:
-                    pos[i] = np.cos(k/(self.n**((i-1)/d)))
-            v_pos = inputs[:, k].reshape(-1,1) + pos
-            pos_encoding = torch.cat((pos_encoding, v_pos), dim = 1)
-        return pos_encoding
+                    pos[0][i] = np.cos(np.radians(k/(self.n**((i-1)/d))))
+            v_pos = inputs[k, :] + pos
+            pos_encoding = torch.cat((pos_encoding, v_pos), dim = 0)
+        return pos_encoding/2
     
     # Multi-head attention
     def multi_head_attention(self, inputs):
@@ -93,28 +89,26 @@ class Transformer():
         return output
         
     # Layer norm after self-attention layer
-    def layer_norm_self_attention(self, previous_layer_outputs, inputs):
-        inputs_matching = inputs @ self.Wnorm_self + self.bnorm_self
-        # print(inputs_matching.shape)
-        matrix = previous_layer_outputs + inputs_matching
-        z_score_matrix = z_score(matrix)
-        next_inputs = self.gamma_self @ z_score_matrix + self.beta_self
+    def layer_norm_self_attention(self, previous_layer_outputs, previous_layer_inputs):
+        cat_matrix = torch.cat((previous_layer_outputs, previous_layer_inputs), dim = 1)
+        next_inputs = torch.softmax(cat_matrix @ self.gamma_self + self.beta_self, dim = 1)
         return next_inputs
 
     # Feed forward after layer norm
     def feed_forward(self, inputs):
-        output = inputs @ self.Wf + self.bf
+        output = self.Wf @ inputs + self.bf
         output = torch.relu(output)
         return output
         
     # Layer norm after feed_forward
-    def layer_norm_feed_forward(self, previous_layer_outputs, inputs):
-        intputs_matching = inputs @ self.Wnorm_feed + self.bnorm_feed
-        vector = previous_layer_outputs + intputs_matching
-        z_score_vector = z_score(vector)
-        next_inputs = self.gamma_feed @ z_score_vector + self.beta_feed
+    def layer_norm_feed_forward(self, previous_layer_outputs, previous_layer_inputs):
+        cat_matrix = torch.cat((previous_layer_outputs, previous_layer_inputs), dim = 0)
+        next_inputs =  torch.softmax(cat_matrix @ self.gamma_feed + self.beta_feed, dim = 1)
         return next_inputs
     
+    def linear(self, inputs):
+        return self.Wl @ inputs + self.bl
+
     def forward(self, inputs):
         # Inputs is a whole sentence at a time
         # And this sentence is represented by a matrix
@@ -124,10 +118,12 @@ class Transformer():
         torch_inputs = torch_inputs.to(torch.float32)
         pos_inputs = self.positional_encoding(torch_inputs)
         output_self_attention = self.multi_head_attention(pos_inputs)
+        print(output_self_attention*1000)
         output_layer_norm_self = self.layer_norm_self_attention(output_self_attention, pos_inputs)
         output_feed_forward = self.feed_forward(output_layer_norm_self)
         output_layer_norm_feed = self.layer_norm_feed_forward(output_feed_forward, output_layer_norm_self)
-        y_pred = torch.softmax(output_layer_norm_feed, dim = 1)
+        output_linear = self.linear(output_layer_norm_feed)
+        y_pred = torch.softmax(output_linear, dim = 1)
         return y_pred
     
     def process(self, X, y, run_backward = False):
@@ -140,12 +136,9 @@ class Transformer():
             # Accuracy
             accuracy += int(torch.argmax(probs) == true_index) 
             if run_backward:
-                print(f"true index", true_index)
                 y_true_torch = torch.zeros((1,2))
                 y_true_torch[0][true_index] = 1
-                print(y_true_torch)
                 L = self.loss(probs, y_true_torch)
-                # print(L)
                 self.optimizer.zero_grad()
                 L.backward()
                 self.optimizer.step()
@@ -155,10 +148,11 @@ class Transformer():
     def fit(self, X, y, max_iter = 201, learning_rate = 0.001, print_period = 20):
         self.loss = nn.BCELoss()
         self.optimizer = opt.SGD([self.Wq, self.Wk, self.Wv, self.Wo, 
-                                self.Wnorm_self, self.bnorm_self, self.gamma_self, self.beta_self, 
-                                self.Wf, self.bf, 
-                                self.Wnorm_feed, self.bnorm_feed, self.gamma_feed, self.beta_feed],
-                                lr = learning_rate)
+                                  self.gamma_self, self.beta_self,
+                                  self.Wf, self.bf, 
+                                  self.gamma_feed, self.beta_feed,
+                                  self.Wl, self.bl],
+                                  lr = learning_rate)
         for i in range(max_iter):
             accuracy = self.process(X, y, run_backward=True)
             if(i % print_period == 0):
