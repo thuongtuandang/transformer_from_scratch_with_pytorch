@@ -39,7 +39,7 @@ if __name__ == "__main__":
         "--hidden_size",
         type = int,
         required = False,
-        default =64
+        default = 2
     )
     parser.add_argument(
         "-ni",
