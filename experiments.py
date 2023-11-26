@@ -39,7 +39,7 @@ if __name__ == "__main__":
         "--hidden_size",
         type = int,
         required = False,
-        default =64
+        default =18
     )
     parser.add_argument(
         "-ni",
@@ -53,7 +53,7 @@ if __name__ == "__main__":
         "--learning_rate",
         type = float,
         required = False,
-        default = 0.001
+        default = 0.03
     )
     parser.add_argument(
         "-pr",
