@@ -51,16 +51,16 @@ class Transformer():
         self.bl = torch.zeros((1,1), requires_grad = True)    
     
     # Positional encoding for the whole sentence
-    # def positional_encoding(self, inputs):
-    #     pos_encoding = torch.empty(0, inputs.shape[1])
-    #     iter = inputs.shape[0]
-    #     d = inputs.shape[1]
-    #     position = torch.arange(iter).unsqueeze(1)
-    #     div_term = torch.exp(torch.arange(0, d, 2) * (-math.log(10000.0) / d))
-    #     pe = torch.zeros(iter, d)
-    #     pe[:, 0::2] = torch.sin(position * div_term)
-    #     pe[:, 1::2] = torch.cos(position * div_term)
-    #     return pe + inputs
+    def positional_encoding(self, inputs):
+        pos_encoding = torch.empty(0, inputs.shape[1])
+        iter = inputs.shape[0]
+        d = inputs.shape[1]
+        position = torch.arange(iter).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0, d, 2) * (-math.log(10000.0) / d))
+        pe = torch.zeros(iter, d)
+        pe[:, 0::2] = torch.sin(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term)
+        return pe + inputs
 
     # Positional encoding for the whole sentence
     def positional_encoding(self, inputs):
@@ -152,7 +152,7 @@ class Transformer():
          # Accuracy 
         return float(accuracy/len(X))
     
-    def fit(self, X, y, max_iter = 201, learning_rate = 0.001, print_period = 20):
+    def fit(self, X, y, max_iter = 201, learning_rate = 0.01, print_period = 20):
         self.loss = nn.BCELoss()
         # Because Wq, Wk, Wv are tensor list
         # and we are not using nn.Module

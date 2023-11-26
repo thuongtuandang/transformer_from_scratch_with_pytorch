@@ -16,12 +16,6 @@ Interesting points contained in the file:
 - Step by step implement them in Python.
 
 ## Install python package
-### Using `venv`:
-```
-python -m venv ./myenv
-source ./myenv/bin/activate
-pip install requirements.txt
-```
 ### Using `pipenv`:
 ```
 pipenv install
@@ -30,8 +24,10 @@ pipenv install
 You can train a transformer model with the default setting:
 - train data: `data/train_data.csv`
 - test data: `data/test_data.csv`
-- learning rate: `0.03`
+- learning rate: `0.01`
 - number of iterations: `201`
+- print period: `20`
+- hidden size: `18`
 ```
 python experiments.py
 ```
@@ -42,7 +38,7 @@ test_data_path = "path/to/your/test/data/file"
 ```
 You also can change the `learning rate`, also the `number of iterations` and the `print periods` with this command:
 ```
-python experiments.py --num_iter 201 --learning_rate 0.03 --print_period 20
+python experiments.py --num_iter 201 --learning_rate 0.01 --print_period 20
 ```
 ## Prediction
 After training, the trained model is saved at `saved_model/model.pkl` so that we can run the prediction without retraining by simply loading the model file. You can run the prediction by the following command:
