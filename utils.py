@@ -19,6 +19,6 @@ def self_attention(mask, Q, K, V):
 def manually_update(tensor_list, lr):
     with torch.no_grad():
         for tensor in tensor_list:
-            tensor -= lr * tensor
+            tensor -= lr * tensor.grad
     for tensor in tensor_list:
         tensor.grad.zero_()
