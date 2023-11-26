@@ -36,7 +36,7 @@ You can switch to your own data by coping your data file to the `data` folder an
 train_data_path = "path/to/your/train/data/file"
 test_data_path = "path/to/your/test/data/file"
 ```
-You also can change the `learning rate`, also the `number of iterations` and the `print periods` with this command:
+You can also change the `learning rate`, the `number of iterations` and the `print period` with this command:
 ```
 python experiments.py --num_iter 201 --learning_rate 0.01 --print_period 20
 ```
