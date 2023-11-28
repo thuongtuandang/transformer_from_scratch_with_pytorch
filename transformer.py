@@ -99,7 +99,6 @@ class Transformer():
         output_feed_forward = self.feed_forward(output_self_attention)
         output_linear = self.linear(output_feed_forward)
         y_pred = torch.softmax(output_linear, dim = 0)
-        print(y_pred)
         return y_pred
     
     def process(self, X, y, run_backward = False):

@@ -15,12 +15,6 @@ Interesting points contained in the file:
 - Residual connections can reduce random noises and the possibility of vanishing gradient.
 
 ## Install python package
-### Using `venv`:
-```
-python -m venv ./myenv
-source ./myenv/bin/activate
-pip install requirements.txt
-```
 ### Using `pipenv`:
 ```
 pipenv install
