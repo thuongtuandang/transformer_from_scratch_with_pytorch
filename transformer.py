@@ -51,16 +51,16 @@ class Transformer():
         self.bl = torch.zeros((1,1), requires_grad = True)    
     
     # Positional encoding for the whole sentence
-    def positional_encoding(self, inputs):
-        pos_encoding = torch.empty(0, inputs.shape[1])
-        iter = inputs.shape[0]
-        d = inputs.shape[1]
-        position = torch.arange(iter).unsqueeze(1)
-        div_term = torch.exp(torch.arange(0, d, 2) * (-math.log(10000.0) / d))
-        pe = torch.zeros(iter, d)
-        pe[:, 0::2] = torch.sin(position * div_term)
-        pe[:, 1::2] = torch.cos(position * div_term)
-        return pe + inputs
+    # def positional_encoding(self, inputs):
+    #     pos_encoding = torch.empty(0, inputs.shape[1])
+    #     iter = inputs.shape[0]
+    #     d = inputs.shape[1]
+    #     position = torch.arange(iter).unsqueeze(1)
+    #     div_term = torch.exp(torch.arange(0, d, 2) * (-math.log(10000.0) / d))
+    #     pe = torch.zeros(iter, d)
+    #     pe[:, 0::2] = torch.sin(position * div_term)
+    #     pe[:, 1::2] = torch.cos(position * div_term)
+    #     return pe + inputs
 
     # Positional encoding for the whole sentence
     def positional_encoding(self, inputs):
@@ -91,15 +91,27 @@ class Transformer():
             h = torch.cat((h, hi), dim = 1)
         output = h @ self.Wo
         return output
+        
+    # Layer norm after self-attention layer
+    def layer_norm_self_attention(self, previous_layer_outputs, previous_layer_inputs):
+        cat_matrix = torch.cat((previous_layer_outputs, previous_layer_inputs), dim = 1)
+        next_inputs = torch.softmax(cat_matrix @ self.gamma_self + self.beta_self, dim = 1)
+        return next_inputs
 
-    # Feed forward layer
+    # Feed forward after layer norm
     def feed_forward(self, inputs):
         output = self.Wf @ inputs + self.bf
         output = torch.relu(output)
         return output
+        
+    # Layer norm after feed_forward
+    def layer_norm_feed_forward(self, previous_layer_outputs, previous_layer_inputs):
+        cat_matrix = torch.cat((previous_layer_outputs, previous_layer_inputs), dim = 0)
+        next_inputs =  torch.softmax(cat_matrix @ self.gamma_feed + self.beta_feed, dim = 1)
+        return next_inputs
     
     def linear(self, inputs):
-        return inputs @ self.Wl + self.bl
+        return self.Wl @ inputs + self.bl
 
     def forward(self, inputs):
         # Inputs is a whole sentence at a time
@@ -127,10 +139,10 @@ class Transformer():
             # Accuracy
             accuracy += int(torch.argmax(probs) == true_index) 
             if run_backward:
-                y_true_torch = torch.zeros((2,1))
-                y_true_torch[true_index] = 1
-                self.optimizer.zero_grad()
+                y_true_torch = torch.zeros((1,2))
+                y_true_torch[0][true_index] = 1
                 L = self.loss(probs, y_true_torch)
+                self.optimizer.zero_grad()
                 L.backward()
                 self.optimizer.step()
                 # Update Wq, Wk, Wv manually
@@ -140,7 +152,7 @@ class Transformer():
          # Accuracy 
         return float(accuracy/len(X))
     
-    def fit(self, X, y, max_iter = 201, learning_rate = 0.01, print_period = 20):
+    def fit(self, X, y, max_iter = 201, learning_rate = 0.03, print_period = 20):
         self.loss = nn.BCELoss()
         # Because Wq, Wk, Wv are tensor list
         # and we are not using nn.Module
@@ -148,6 +160,7 @@ class Transformer():
         self.optimizer = opt.SGD([self.Wo, 
                                   self.gamma_self, self.beta_self,
                                   self.Wf, self.bf, 
+                                  self.gamma_feed, self.beta_feed,
                                   self.Wl, self.bl],
                                   lr = learning_rate)
         for i in range(max_iter):

@@ -53,7 +53,7 @@ if __name__ == "__main__":
         "--learning_rate",
         type = float,
         required = False,
-        default = 0.01
+        default = 0.03
     )
     parser.add_argument(
         "-pr",
